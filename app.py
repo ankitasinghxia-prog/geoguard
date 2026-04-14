@@ -14,6 +14,9 @@ from model import TerrainRiskModel
 # Import PDF Generator
 from pdf_generator import generate_risk_report
 
+# Import Weather Fetcher
+from weather_fetcher import WeatherFetcher
+
 # ==================== PAGE CONFIGURATION ====================
 st.set_page_config(
     page_title="GeoGuard - AI Terrain Risk Analyzer",
@@ -45,6 +48,8 @@ if 'last_risk_score' not in st.session_state:
     st.session_state.last_risk_score = None
 if 'last_features' not in st.session_state:
     st.session_state.last_features = None
+if 'last_weather' not in st.session_state:
+    st.session_state.last_weather = None
 
 # ==================== CUSTOM CSS ====================
 st.markdown("""
@@ -122,6 +127,13 @@ st.markdown("""
         0% { transform: scale(1); }
         50% { transform: scale(1.02); }
         100% { transform: scale(1); }
+    }
+    
+    .weather-card {
+        background: linear-gradient(135deg, #667eea20, #764ba220);
+        border-radius: 15px;
+        padding: 10px;
+        margin: 10px 0;
     }
     
     #MainMenu {visibility: hidden;}
@@ -344,7 +356,7 @@ with st.sidebar:
 
 # ==================== MAIN CONTENT ====================
 st.markdown('<h1 style="text-align: center; margin-bottom: 0;">🛡️ <span class="gradient-text">GeoGuard</span></h1>', unsafe_allow_html=True)
-st.markdown('<p style="text-align: center; color: #666; margin-bottom: 30px;">AI-Based Border Terrain Risk Analyzer</p>', unsafe_allow_html=True)
+st.markdown('<p style="text-align: center; color: #666; margin-bottom: 30px;">AI-Based Border Terrain Risk Analyzer | Real-Time Weather Integration</p>', unsafe_allow_html=True)
 
 # Create three tabs
 tab1, tab2, tab3 = st.tabs(["📍 Single Location Analysis", "🗺️ Regional Heatmap", "📊 Batch Analysis"])
@@ -398,7 +410,7 @@ with tab1:
             st.caption(f"📍 Analyzing: **{st.session_state.selected_lat:.6f}°N, {st.session_state.selected_lon:.6f}°E**")
             
             if analyze_clicked:
-                with st.spinner("🤖 AI is analyzing terrain data..."):
+                with st.spinner("🤖 AI is analyzing terrain data with real-time weather..."):
                     import time
                     time.sleep(0.5)
                     
@@ -421,8 +433,17 @@ with tab1:
                     for key in features:
                         features[key] = max(0, min(features[key], 100 if key != 'elevation' else 5000))
                     
+                    # Fetch real weather data
+                    weather_fetcher = WeatherFetcher()
+                    weather_data = weather_fetcher.get_weather(st.session_state.selected_lat, st.session_state.selected_lon)
+                    weather_impact, weather_reasons = weather_fetcher.get_weather_impact(weather_data) if weather_data else (0, ["Weather data unavailable"])
+                    
+                    # Store weather in session state
+                    if weather_data:
+                        st.session_state.last_weather = weather_data
+                    
                     result = model.predict(features)
-                    final_score = min(95, result['risk_score'] + himalayas_bonus + coastal_bonus)
+                    final_score = min(95, result['risk_score'] + himalayas_bonus + coastal_bonus + weather_impact)
                     
                     st.session_state.last_risk_score = final_score
                     st.session_state.last_features = features
@@ -434,6 +455,7 @@ with tab1:
                         'time': datetime.now()
                     })
                 
+                # Display Risk Gauge
                 fig = go.Figure(go.Indicator(
                     mode="gauge+number+delta",
                     value=final_score,
@@ -453,6 +475,7 @@ with tab1:
                 fig.update_layout(height=300, margin=dict(l=20, r=20, t=40, b=20))
                 st.plotly_chart(fig, use_container_width=True)
                 
+                # Risk Level Text
                 if final_score < 40:
                     st.markdown('<div class="risk-low"><h3>🟢 LOW RISK</h3><p>Normal monitoring only</p></div>', unsafe_allow_html=True)
                 elif final_score < 70:
@@ -460,6 +483,32 @@ with tab1:
                 else:
                     st.markdown('<div class="risk-high"><h3>🔴 HIGH RISK</h3><p>Immediate attention required!</p></div>', unsafe_allow_html=True)
                 
+                # Display Weather Information
+                if weather_data:
+                    st.markdown("### 🌤️ **Current Weather**")
+                    
+                    # Weather metrics
+                    col_w1, col_w2, col_w3, col_w4 = st.columns(4)
+                    with col_w1:
+                        st.metric("🌡️ Temp", f"{weather_data['temperature']:.1f}°C")
+                    with col_w2:
+                        st.metric("💧 Humidity", f"{weather_data['humidity']}%")
+                    with col_w3:
+                        st.metric("💨 Wind", f"{weather_data['wind_speed']:.1f} km/h")
+                    with col_w4:
+                        st.metric("☁️ Condition", weather_data['weather_main'])
+                    
+                    # Weather impact alert
+                    if weather_impact > 0:
+                        st.warning(f"⚠️ **Weather Alert:** +{weather_impact}% risk added due to weather conditions")
+                        for reason in weather_reasons:
+                            st.caption(f"• {reason}")
+                    else:
+                        st.info("✅ Weather conditions are favorable - no additional risk")
+                else:
+                    st.info("🌐 Weather data temporarily unavailable - using terrain-only analysis")
+                
+                # Key Risk Factors
                 st.markdown("### 🔍 Key Risk Factors")
                 
                 factors_display = {
@@ -485,6 +534,10 @@ with tab1:
                                 "Water Proximity": min(100, (5 - min(5, features['water_distance_km'])) * 20),
                                 "Rainfall Impact": min(100, features['rainfall_mm'] / 4),
                             }
+                            
+                            # Add weather to PDF if available
+                            if weather_data:
+                                pdf_factors["Weather Impact"] = weather_impact
                             
                             if final_score < 40:
                                 risk_level_text = "Low"
@@ -513,15 +566,19 @@ with tab1:
                 st.caption(f"🕐 Analyzed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
                 
             else:
-                st.info("👈 **Click 'ANALYZE RISK' to start AI assessment**")
+                st.info("👈 **Click 'ANALYZE RISK' to start AI assessment with real-time weather**")
                 st.markdown("**AI Analyzes:**")
                 st.markdown("- Terrain slope & elevation")
                 st.markdown("- Vegetation density (NDVI)")
                 st.markdown("- Water body proximity")
-                st.markdown("- Weather patterns")
+                st.markdown("- **Real-time weather conditions** ⭐ NEW")
                 st.markdown("- Infrastructure access")
                 st.markdown("---")
-                st.markdown("**PDF Report:** After analysis, click 'Export PDF Report' to download a professional report.")
+                st.markdown("**Weather Integration:**")
+                st.markdown("🌧️ Rain → +25% risk")
+                st.markdown("🌫️ Fog → +15% risk")
+                st.markdown("💨 High winds → +10-15% risk")
+                st.markdown("🔥 Extreme heat → +15% risk")
             
             st.markdown('</div>', unsafe_allow_html=True)
 
@@ -682,14 +739,16 @@ with tab3:
 
 # ==================== FOOTER ====================
 st.markdown("---")
-col_f1, col_f2, col_f3, col_f4 = st.columns(4)
+col_f1, col_f2, col_f3, col_f4, col_f5 = st.columns(5)
 with col_f1:
     st.caption("🚀 Powered by: Random Forest AI")
 with col_f2:
-    st.caption("🎯 SDG Goals: 9 (Innovation) & 16 (Peace)")
+    st.caption("🎯 SDG Goals: 9 & 16")
 with col_f3:
-    st.caption("📡 Data: Real-time Geospatial Analysis")
+    st.caption("📡 Real-time Weather")
 with col_f4:
-    st.caption("🛡️ GeoGuard v2.0")
+    st.caption("🌍 Live Satellite Data")
+with col_f5:
+    st.caption("🛡️ GeoGuard v2.1")
 
-st.markdown('<p style="text-align: center; color: #888; font-size: 12px; margin-top: 10px;">© 2024 GeoGuard | AI-Based Border Terrain Risk Analyzer | All Rights Reserved</p>', unsafe_allow_html=True)
+st.markdown('<p style="text-align: center; color: #888; font-size: 12px; margin-top: 10px;">© 2024 GeoGuard | AI-Based Border Terrain Risk Analyzer | Real-Time Weather Integration</p>', unsafe_allow_html=True)
