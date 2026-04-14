@@ -1,0 +1,29 @@
+# Virtual environment (DO NOT UPLOAD - too big)
+venv/
+env/
+ENV/
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE files
+.vscode/
+.idea/
+
+# Environment variables (contains API keys later)
+.env
+
+# Model files (can regenerate)
+models/*.pkl
+
+# Data files
+data/*.csv
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Streamlit cache
+.streamlit/
