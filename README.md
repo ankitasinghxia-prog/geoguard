@@ -2,20 +2,6 @@
 
 
 
-\[!\[Live Demo](https://img.shields.io/badge/Live\_Demo-Streamlit\_Cloud-red?style=for-the-badge\&logo=streamlit)](https://geoguard-ankitasinghxia-prog.streamlit.app)
-
-\[!\[Telegram Bot](https://img.shields.io/badge/Telegram\_Bot-@geoguard\_risk\_bot-blue?style=for-the-badge\&logo=telegram)](https://t.me/geoguard\_risk\_bot)
-
-\[!\[GitHub](https://img.shields.io/badge/GitHub-Repo-black?style=for-the-badge\&logo=github)](https://github.com/ankitasinghxia-prog/geoguard)
-
-\[!\[Python](https://img.shields.io/badge/Python-3.11-green?style=for-the-badge\&logo=python)](https://www.python.org/)
-
-\[!\[Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge\&logo=streamlit\&logoColor=white)](https://streamlit.io/)
-
-
-
-\---
-
 
 
 \## 📌 Project Overview
@@ -28,13 +14,13 @@
 
 \### 🎯 Live Demo
 
-👉 \*\*Try it now:\*\* \[geoguard-ankitasinghxia-prog.streamlit.app](https://geoguard-ankitasinghxia-prog.streamlit.app)
+👉 \*\*Try it now:\*\* \[geoguard-ankitasinghxia-prog.streamlit.app](https://geoguard-hh3hdkkpflx9nbnwtjeqdp.streamlit.app/)
 
 
 
 \### 🤖 Telegram Bot
 
-👉 \*\*Chat with bot:\*\* \[@geoguard\_risk\_bot](https://t.me/geoguard\_risk\_bot)
+👉 \*\*Chat with bot:\*\* \[@geoguard\_risk\_bot](https://web.telegram.org/k/#@geoguard\_risk\_bot)
 
 
 
@@ -294,6 +280,10 @@ SDG 13 - Climate Action	Environmental risk detection
 
 SDG 15 - Life on Land	Terrain and ecosystem monitoring
 
+
+
+
+
 📁 Project Structure
 
 text
@@ -340,6 +330,8 @@ Email: \[ankitasinghxia@gmail.com]
 
 🙏 Acknowledgments
 
+
+
 OpenWeatherMap for weather API
 
 
@@ -352,7 +344,31 @@ Telegram Bot API for bot integration
 
 
 
+🔧 Future Enhancements
 
+
+
+Real-time satellite data (Sentinel-2 integration)
+
+
+
+Mobile app (React Native)
+
+
+
+Multi-language support (Hindi, Punjabi)
+
+
+
+Email/SMS alerts for high-risk zones
+
+
+
+Historical risk trend analysis
+
+
+
+Drone flight path generation
 
 
 
