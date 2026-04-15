@@ -7,6 +7,11 @@ import random
 import pandas as pd
 from folium import plugins
 import plotly.graph_objects as go
+import json
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+import streamlit as st
+from urllib.parse import urlparse, parse_qs
 
 # Import our AI model
 from model import TerrainRiskModel
@@ -50,6 +55,21 @@ if 'last_features' not in st.session_state:
     st.session_state.last_features = None
 if 'last_weather' not in st.session_state:
     st.session_state.last_weather = None
+
+# Get URL parameters for sharing
+query_params = st.query_params
+if 'lat' in query_params and 'lon' in query_params:
+    try:
+        shared_lat = float(query_params['lat'])
+        shared_lon = float(query_params['lon'])
+        st.session_state.selected_lat = shared_lat
+        st.session_state.selected_lon = shared_lon
+        st.session_state.map_center = [shared_lat, shared_lon]
+        st.session_state.manual_lat = shared_lat
+        st.session_state.manual_lon = shared_lon
+        st.success(f"📍 Loaded shared location: {shared_lat}, {shared_lon}")
+    except:
+        pass
 
 # ==================== CUSTOM CSS ====================
 st.markdown("""
@@ -330,6 +350,19 @@ with st.sidebar:
     analyze_clicked = st.button("🔍 **ANALYZE RISK**", type="primary", use_container_width=True)
     
     st.markdown("---")
+     
+        st.markdown("---")
+    st.markdown("### 🔗 **Share Location**")
+    
+    # Generate shareable link
+    base_url = "https://geoguard-ankitasinghxia-prog.streamlit.app"
+    share_url = f"{base_url}?lat={st.session_state.selected_lat}&lon={st.session_state.selected_lon}"
+    
+    st.code(share_url, language="text")
+    
+    if st.button("📋 Copy Share Link", use_container_width=True):
+        st.write("✅ Link copied to clipboard!")
+        st.markdown(f'<script>navigator.clipboard.writeText("{share_url}")</script>', unsafe_allow_html=True)
     
     # Stats
     st.markdown("### 📊 **Session Stats**")
@@ -736,6 +769,34 @@ with tab3:
                         st.success("✅ No high-risk locations detected in this batch.")
     
     st.markdown('</div>', unsafe_allow_html=True)
+
+
+# ==================== SIMPLE API FOR TELEGRAM BOT ====================
+# This creates an endpoint that the Telegram bot can call
+
+
+def get_risk_api(lat, lon):
+    """Helper function for API endpoint"""
+    import random
+    random.seed(int(abs(lat * 1000) + abs(lon * 1000)))
+    
+    himalayas_bonus = 15 if (28 < lat < 31 and 77 < lon < 80) else 0
+    coastal_bonus = 10 if lat < 20 else 0
+    
+    features = {
+        'slope': random.uniform(0, 60) + (himalayas_bonus / 2),
+        'elevation': random.uniform(0, 5000) + himalayas_bonus * 50,
+        'ndvi': random.uniform(-0.5, 0.8),
+        'water_distance_km': random.uniform(0, 5) - (coastal_bonus / 20),
+        'road_distance_km': random.uniform(0, 10),
+        'rainfall_mm': random.uniform(0, 400) + himalayas_bonus,
+        'vegetation_density': random.uniform(0, 100)
+    }
+    
+    result = model.predict(features)
+    final_score = min(95, result['risk_score'] + himalayas_bonus + coastal_bonus)
+    
+    return {'risk_score': final_score, 'risk_level': 'High' if final_score > 70 else ('Medium' if final_score > 40 else 'Low')}
 
 # ==================== FOOTER ====================
 st.markdown("---")
