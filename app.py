@@ -8,6 +8,7 @@ import pandas as pd
 from folium import plugins
 import plotly.graph_objects as go
 from urllib.parse import urlparse, parse_qs
+from image_export import create_simple_map_image
 
 # Import our AI model
 from model import TerrainRiskModel
@@ -358,7 +359,33 @@ with st.sidebar:
         st.write("✅ Link copied to clipboard!")
         st.markdown(f'<script>navigator.clipboard.writeText("{share_url}")</script>', unsafe_allow_html=True)
     st.markdown("---")
+   
+    st.markdown("### 📸 **Export Map**")
     
+    if st.button("📷 Save Map as Image", use_container_width=True):
+        with st.spinner("Generating image..."):
+            img = create_simple_map_image(
+                st.session_state.selected_lat,
+                st.session_state.selected_lon,
+                st.session_state.last_risk_score if st.session_state.last_risk_score else 50
+            )
+            if img:
+                # Convert PIL to bytes for download
+                img_bytes = io.BytesIO()
+                img.save(img_bytes, format='PNG')
+                img_bytes.seek(0)
+                
+                st.download_button(
+                    label="📥 Download Image",
+                    data=img_bytes,
+                    file_name=f"geoguard_map_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png",
+                    mime="image/png",
+                    use_container_width=True
+                )
+            else:
+                st.error("Failed to generate image")
+    st.markdown("---")
+
     # Stats
     st.markdown("### 📊 **Session Stats**")
     st.metric("Locations Analyzed", len(st.session_state.risk_history))
