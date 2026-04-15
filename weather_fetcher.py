@@ -4,7 +4,7 @@ import streamlit as st
 class WeatherFetcher:
     def __init__(self):
         # Get API key from secrets or use directly (for now)
-        self.api_key = st.secrets.get("WEATHER_API_KEY", "YOUR_API_KEY_HERE")
+        self.api_key = st.secrets.get("WEATHER_API_KEY", "48bb965111d61f313c26377ec404e059")
         self.base_url = "https://api.openweathermap.org/data/2.5/weather"
     
     def get_weather(self, lat, lon):
