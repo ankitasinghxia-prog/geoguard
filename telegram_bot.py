@@ -9,10 +9,10 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 # ==================== CONFIGURATION ====================
-# YOUR ACTUAL TOKEN - Replace with your token if needed
+# Your Telegram Bot Token
 TOKEN = "8039116726:AAEpgF8GUEeSNG0I_4dL0yAtMCDihIqARpg"
 
-# OpenWeatherMap API Key (optional - get from https://openweathermap.org/api)
+# Your WORKING Weather API Key (confirmed working in browser)
 WEATHER_API_KEY = "48bb965111d61f313c26377ec404e059"
 
 # ==================== RISK ANALYSIS FUNCTION ====================
@@ -66,11 +66,7 @@ def analyze_risk(lat, lon):
             'risk_score': round(risk_score, 1),
             'risk_level': risk_level,
             'emoji': emoji,
-            'factors': factors,
-            'slope': slope,
-            'ndvi': ndvi,
-            'water_distance': water_distance,
-            'rainfall': rainfall
+            'factors': factors
         }
     except Exception as e:
         logger.error(f"Risk analysis error: {e}")
@@ -80,20 +76,30 @@ def analyze_risk(lat, lon):
 def get_weather(lat, lon):
     """Fetch current weather from OpenWeatherMap"""
     try:
-        if WEATHER_API_KEY and WEATHER_API_KEY != "48bb965111d61f313c26377ec404e059":
-            url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={WEATHER_API_KEY}&units=metric"
-            response = requests.get(url, timeout=10)
-            if response.status_code == 200:
-                data = response.json()
-                return {
-                    'temperature': data['main']['temp'],
-                    'humidity': data['main']['humidity'],
-                    'wind_speed': data['wind']['speed'],
-                    'condition': data['weather'][0]['description'].title()
-                }
-        return None
+        # Using the SAME URL that worked in browser
+        url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={WEATHER_API_KEY}&units=metric"
+        
+        print(f"Fetching weather from: {url}")  # Debug line
+        
+        response = requests.get(url, timeout=15)
+        
+        print(f"Response status: {response.status_code}")  # Debug line
+        
+        if response.status_code == 200:
+            data = response.json()
+            weather_info = {
+                'temperature': data['main']['temp'],
+                'humidity': data['main']['humidity'],
+                'wind_speed': data['wind']['speed'],
+                'condition': data['weather'][0]['description'].title(),
+                'weather_main': data['weather'][0]['main']
+            }
+            return weather_info
+        else:
+            print(f"Weather API returned: {response.status_code}")
+            return None
     except Exception as e:
-        logger.error(f"Weather API error: {e}")
+        print(f"Weather API error: {e}")
         return None
 
 # ==================== BOT COMMANDS ====================
@@ -138,6 +144,7 @@ async def risk_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     message += f"   • {factor}\n"
             else:
                 message += "   • No extreme factors detected\n"
+            
             message += f"\n💡 Use /weather {lat:.4f} {lon:.4f} for current weather"
             await update.message.reply_text(message)
         else:
@@ -145,7 +152,7 @@ async def risk_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except ValueError:
         await update.message.reply_text("❌ Invalid coordinates. Use numbers like: /risk 28.6139 77.2090")
     except Exception as e:
-        await update.message.reply_text("❌ An error occurred")
+        await update.message.reply_text(f"❌ An error occurred: {e}")
 
 async def weather_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
@@ -161,7 +168,8 @@ async def weather_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         weather = get_weather(lat, lon)
         
         if weather:
-            message = f"🌍 Current Weather\n📍 Location: {lat:.4f}, {lon:.4f}\n\n"
+            message = f"🌍 Current Weather\n"
+            message += f"📍 Location: {lat:.4f}, {lon:.4f}\n\n"
             message += f"🌡️ Temperature: {weather['temperature']:.1f}°C\n"
             message += f"💧 Humidity: {weather['humidity']}%\n"
             message += f"💨 Wind Speed: {weather['wind_speed']:.1f} km/h\n"
@@ -169,39 +177,59 @@ async def weather_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             message += f"💡 Use /risk {lat:.4f} {lon:.4f} for risk analysis"
             await update.message.reply_text(message)
         else:
-            await update.message.reply_text("❌ Unable to fetch weather data. API key may need activation (takes 1-2 hours).")
+            message = (
+                "❌ Unable to fetch weather data.\n\n"
+                "Possible reasons:\n"
+                "• API key not activated (wait 2-4 hours)\n"
+                "• No internet connection\n"
+                "• Invalid coordinates\n\n"
+                "Try /risk command for terrain analysis instead."
+            )
+            await update.message.reply_text(message)
+            
     except ValueError:
-        await update.message.reply_text("❌ Invalid coordinates")
+        await update.message.reply_text("❌ Invalid coordinates. Use numbers like: /weather 28.6139 77.2090")
     except Exception as e:
-        await update.message.reply_text("❌ An error occurred")
+        await update.message.reply_text(f"❌ An error occurred: {e}")
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = (
         "🛡️ GeoGuard Bot Commands\n\n"
         "/risk lat lon - Analyze terrain risk\n"
+        "   • Returns risk score (0-100%)\n"
+        "   • Shows contributing factors\n\n"
         "/weather lat lon - Get current weather\n"
+        "   • Temperature, humidity, wind\n"
+        "   • Current conditions\n\n"
         "/start - Welcome message\n"
         "/help - This help\n\n"
         "📍 Quick Coordinates:\n"
         "Delhi: 28.6139, 77.2090\n"
         "Mumbai: 19.0760, 72.8777\n"
-        "Himalayas: 30.0000, 79.0000"
+        "Bangalore: 12.9716, 77.5946\n"
+        "Himalayas: 30.0000, 79.0000\n\n"
+        "Powered by AI & OpenWeatherMap"
     )
     await update.message.reply_text(message)
 
-# ==================== MAIN ====================
+# ==================== MAIN FUNCTION ====================
 def main():
-    app = Application.builder().token(TOKEN).build()
-    
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("risk", risk_command))
-    app.add_handler(CommandHandler("weather", weather_command))
-    app.add_handler(CommandHandler("help", help_command))
-    
+    """Start the bot"""
     print("🤖 GeoGuard Bot is running...")
+    print(f"Using Weather API Key: {WEATHER_API_KEY[:10]}...")
     print("Press Ctrl+C to stop")
     
-    app.run_polling(allowed_updates=Update.ALL_TYPES)
+    # Create application
+    application = Application.builder().token(TOKEN).build()
+    
+    # Add command handlers
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("risk", risk_command))
+    application.add_handler(CommandHandler("weather", weather_command))
+    application.add_handler(CommandHandler("help", help_command))
+    
+    # Start bot
+    application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
     main()
