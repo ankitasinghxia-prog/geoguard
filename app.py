@@ -350,8 +350,6 @@ with st.sidebar:
     analyze_clicked = st.button("🔍 **ANALYZE RISK**", type="primary", use_container_width=True)
     
     st.markdown("---")
-     
-        st.markdown("---")
     st.markdown("### 🔗 **Share Location**")
     
     # Generate shareable link
@@ -363,6 +361,7 @@ with st.sidebar:
     if st.button("📋 Copy Share Link", use_container_width=True):
         st.write("✅ Link copied to clipboard!")
         st.markdown(f'<script>navigator.clipboard.writeText("{share_url}")</script>', unsafe_allow_html=True)
+    st.markdown("---")
     
     # Stats
     st.markdown("### 📊 **Session Stats**")
