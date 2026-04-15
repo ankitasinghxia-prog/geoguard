@@ -7,10 +7,6 @@ import random
 import pandas as pd
 from folium import plugins
 import plotly.graph_objects as go
-import json
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-import streamlit as st
 from urllib.parse import urlparse, parse_qs
 
 # Import our AI model
